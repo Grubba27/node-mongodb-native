@@ -34,14 +34,13 @@ export const uncompressibleCommands = new Set([
 
 const ZSTD_COMPRESSION_LEVEL = 3;
 
-const zlibInflate = promisify(zlib.inflate.bind(zlib));
-const zlibDeflate = promisify(zlib.deflate.bind(zlib));
-
 // Facilitate compressing a message using an agreed compressor
 export async function compress(
   options: { zlibCompressionLevel: number; agreedCompressor: CompressorName },
   dataToBeCompressed: Buffer
 ): Promise<Buffer> {
+  const zlibDeflate = promisify(zlib.deflate.bind(zlib));
+
   const zlibOptions = {} as zlib.ZlibOptions;
   switch (options.agreedCompressor) {
     case 'snappy':
@@ -81,6 +80,7 @@ export async function decompress(compressorID: number, compressedData: Buffer): 
       `Server sent message compressed using an unsupported compressor. (Received compressor ID ${compressorID})`
     );
   }
+  const zlibInflate = promisify(zlib.inflate.bind(zlib));
 
   switch (compressorID) {
     case Compressor.snappy:
