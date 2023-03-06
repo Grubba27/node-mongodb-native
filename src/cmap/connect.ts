@@ -1,6 +1,5 @@
 import type { Socket, SocketConnectOpts } from 'net';
 import * as net from 'net';
-import { SocksClient } from 'socks';
 import type { ConnectionOptions as TLSConnectionOpts, TLSSocket } from 'tls';
 import * as tls from 'tls';
 
@@ -12,6 +11,7 @@ import {
   MongoError,
   MongoErrorLabel,
   MongoInvalidArgumentError,
+  MongoMissingDependencyError,
   MongoNetworkError,
   MongoNetworkTimeoutError,
   MongoRuntimeError,
@@ -471,6 +471,17 @@ function makeSocks5Connection(options: MakeConnectionOptions, callback: Callback
         return callback(
           new MongoInvalidArgumentError('Can only make Socks5 connections to TCP hosts')
         );
+      }
+
+      let SocksClient;
+      try {
+        SocksClient = require('socks');
+      } catch {
+        // ignore for webpack
+      }
+
+      if (SocksClient == null) {
+        throw new MongoMissingDependencyError('you asked for socks, got cold feet?');
       }
 
       // Then, establish the Socks5 proxy connection:
