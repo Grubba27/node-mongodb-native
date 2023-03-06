@@ -26,16 +26,14 @@
   },
   "dependencies": {
     "bson": "^5.0.1",
-    "mongodb-connection-string-url": "^2.6.0",
-    "socks": "^2.7.1"
-  },
-  "optionalDependencies": {
-    "saslprep": "^1.0.3"
+    "mongodb-connection-string-url": "^2.6.0"
   },
   "peerDependencies": {
     "@aws-sdk/credential-providers": "^3.201.0",
     "mongodb-client-encryption": "^2.3.0",
-    "snappy": "^7.2.2"
+    "snappy": "^7.2.2",
+    "socks": "^2.7.1",
+    "saslprep": "^1.0.3"
   },
   "peerDependenciesMeta": {
     "@aws-sdk/credential-providers": {
@@ -45,6 +43,12 @@
       "optional": true
     },
     "mongodb-client-encryption": {
+      "optional": true
+    },
+    "socks": {
+      "optional": true
+    },
+    "saslprep": {
       "optional": true
     }
   },
