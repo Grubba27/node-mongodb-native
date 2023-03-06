@@ -473,19 +473,19 @@ function makeSocks5Connection(options: MakeConnectionOptions, callback: Callback
         );
       }
 
-      let SocksClient;
+      let socks: typeof import('socks') | null = null;
       try {
-        SocksClient = require('socks');
+        socks = require('socks');
       } catch {
         // ignore for webpack
       }
 
-      if (SocksClient == null) {
+      if (socks == null) {
         throw new MongoMissingDependencyError('you asked for socks, got cold feet?');
       }
 
       // Then, establish the Socks5 proxy connection:
-      SocksClient.createConnection({
+      socks.SocksClient.createConnection({
         existing_socket: rawSocket,
         timeout: options.connectTimeoutMS,
         command: 'connect',
