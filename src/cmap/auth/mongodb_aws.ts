@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
+import * as process from 'process';
 import * as url from 'url';
 
 import type { Binary, BSONSerializeOptions } from '../../bson';

@@ -1,6 +1,7 @@
 import * as dns from 'dns';
 import * as fs from 'fs';
 import ConnectionString from 'mongodb-connection-string-url';
+import * as process from 'process';
 import { URLSearchParams } from 'url';
 
 import type { Document } from './bson';

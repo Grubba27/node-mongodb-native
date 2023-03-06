@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import type { Document } from '../bson';
 import type { Collection } from '../collection';
 import { MongoInvalidArgumentError } from '../error';

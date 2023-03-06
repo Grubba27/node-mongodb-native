@@ -1,6 +1,8 @@
+import { Buffer } from 'buffer';
 import * as crypto from 'crypto';
 import type { SrvRecord } from 'dns';
 import * as os from 'os';
+import * as process from 'process';
 import { URL } from 'url';
 
 import { Document, ObjectId, resolveBSONOptions } from './bson';

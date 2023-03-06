@@ -1,4 +1,5 @@
 import * as dns from 'dns';
+import * as process from 'process';
 
 import type { Document } from '../../bson';
 import { Kerberos, KerberosClient } from '../../deps';

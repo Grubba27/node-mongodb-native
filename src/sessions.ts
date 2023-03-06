@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { promisify } from 'util';
 
 import { Binary, Document, Long, Timestamp } from './bson';

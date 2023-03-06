@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import * as crypto from 'crypto';
 
 import { Binary, Document } from '../../bson';

@@ -1,3 +1,5 @@
+import * as process from 'process';
+
 import type { Document } from '../bson';
 import { CommandOptions, Connection, DestroyOptions } from '../cmap/connection';
 import {

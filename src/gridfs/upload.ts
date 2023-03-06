@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { Writable } from 'stream';
 
 import type { Document } from '../bson';

@@ -221,6 +221,17 @@
         "plugin:@typescript-eslint/recommended-requiring-type-checking"
       ],
       "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "process",
+            "message": "Use `import * as process from 'process';` instead"
+          },
+          {
+            "name": "Buffer",
+            "message": "Use `import { Buffer } from 'buffer';` instead"
+          }
+        ],
         "@typescript-eslint/no-unsafe-member-access": "off",
         "@typescript-eslint/no-unsafe-argument": "off",
         "@typescript-eslint/no-unsafe-assignment": "off",

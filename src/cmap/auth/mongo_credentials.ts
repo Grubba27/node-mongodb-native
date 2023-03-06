@@ -1,4 +1,6 @@
 // Resolves the default auth mechanism according to
+import * as process from 'process';
+
 import type { Document } from '../../bson';
 import {
   MongoAPIError,

@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import * as process from 'process';
 
 import { MongoAWSError } from '../../../error';
 import { ServiceWorkflow } from './service_workflow';

@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { Duplex, DuplexOptions } from 'stream';
 
 import type { BSONSerializeOptions, Document } from '../bson';

@@ -1,3 +1,4 @@
+import * as process from 'process';
 import { Writable } from 'stream';
 
 import { parseUnsignedInteger } from './utils';
