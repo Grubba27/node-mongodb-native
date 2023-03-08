@@ -3614,3 +3614,4 @@ buildvariants:
     tasks:
       - test-lambda-example
       - test-lambda-aws-auth-example
+      - test-deployed-lambda
