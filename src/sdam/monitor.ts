@@ -1,8 +1,10 @@
 import { clearTimeout, setTimeout } from 'timers';
 
-import { Document, Long } from '../bson';
+import type { Document } from '../bson';
 import { connect } from '../cmap/connect';
 import { Connection, ConnectionOptions } from '../cmap/connection';
+import { HandshakeGenerator } from '../cmap/handshake/handshake_generator';
+import { MonitorHandshakeDecorator } from '../cmap/handshake/monitor_handshake_decorator';
 import { LEGACY_HELLO_COMMAND } from '../constants';
 import { MongoError, MongoErrorLabel, MongoNetworkTimeoutError } from '../error';
 import { CancellationToken, TypedEventEmitter } from '../mongo_types';
@@ -15,7 +17,6 @@ import {
   ServerHeartbeatSucceededEvent
 } from './events';
 import { Server } from './server';
-import type { TopologyVersion } from './server_description';
 
 /** @internal */
 const kServer = Symbol('server');
@@ -232,18 +233,10 @@ function checkServer(monitor: Monitor, callback: Callback<Document | null>) {
 
   const connection = monitor[kConnection];
   if (connection && !connection.closed) {
-    const { serverApi, helloOk } = connection;
     const connectTimeoutMS = monitor.options.connectTimeoutMS;
     const maxAwaitTimeMS = monitor.options.heartbeatFrequencyMS;
     const topologyVersion = monitor[kServer].description.topologyVersion;
     const isAwaitable = topologyVersion != null;
-
-    const cmd = {
-      [serverApi?.version || helloOk ? 'hello' : LEGACY_HELLO_COMMAND]: 1,
-      ...(isAwaitable && topologyVersion
-        ? { maxAwaitTimeMS, topologyVersion: makeTopologyVersion(topologyVersion) }
-        : {})
-    };
 
     const options = isAwaitable
       ? {
@@ -262,46 +255,62 @@ function checkServer(monitor: Monitor, callback: Callback<Document | null>) {
       );
     }
 
-    connection.command(ns('admin.$cmd'), cmd, options, (err, hello) => {
-      if (err) {
-        return failureHandler(err);
+    // Since we don't have a connection for this monitor we send a handshake
+    // generator that decorates with the initial and monitor decorators.
+    const generator = new HandshakeGenerator([
+      new MonitorHandshakeDecorator(
+        monitor.options,
+        topologyVersion,
+        monitor[kConnection]?.helloOk || false
+      )
+    ]);
+    generator.generate(connection).then(
+      cmd => {
+        connection.command(ns('admin.$cmd'), cmd, options, (err, hello) => {
+          if (err) {
+            return failureHandler(err);
+          }
+
+          if (!('isWritablePrimary' in hello)) {
+            // Provide hello-style response document.
+            hello.isWritablePrimary = hello[LEGACY_HELLO_COMMAND];
+          }
+
+          const rttPinger = monitor[kRTTPinger];
+          const duration =
+            isAwaitable && rttPinger ? rttPinger.roundTripTime : calculateDurationInMs(start);
+
+          monitor.emit(
+            Server.SERVER_HEARTBEAT_SUCCEEDED,
+            new ServerHeartbeatSucceededEvent(monitor.address, duration, hello)
+          );
+
+          // if we are using the streaming protocol then we immediately issue another `started`
+          // event, otherwise the "check" is complete and return to the main monitor loop
+          if (isAwaitable && hello.topologyVersion) {
+            monitor.emit(
+              Server.SERVER_HEARTBEAT_STARTED,
+              new ServerHeartbeatStartedEvent(monitor.address)
+            );
+            start = now();
+          } else {
+            monitor[kRTTPinger]?.close();
+            monitor[kRTTPinger] = undefined;
+
+            callback(undefined, hello);
+          }
+        });
+      },
+      cmdError => {
+        return failureHandler(cmdError);
       }
-
-      if (!('isWritablePrimary' in hello)) {
-        // Provide hello-style response document.
-        hello.isWritablePrimary = hello[LEGACY_HELLO_COMMAND];
-      }
-
-      const rttPinger = monitor[kRTTPinger];
-      const duration =
-        isAwaitable && rttPinger ? rttPinger.roundTripTime : calculateDurationInMs(start);
-
-      monitor.emit(
-        Server.SERVER_HEARTBEAT_SUCCEEDED,
-        new ServerHeartbeatSucceededEvent(monitor.address, duration, hello)
-      );
-
-      // if we are using the streaming protocol then we immediately issue another `started`
-      // event, otherwise the "check" is complete and return to the main monitor loop
-      if (isAwaitable && hello.topologyVersion) {
-        monitor.emit(
-          Server.SERVER_HEARTBEAT_STARTED,
-          new ServerHeartbeatStartedEvent(monitor.address)
-        );
-        start = now();
-      } else {
-        monitor[kRTTPinger]?.close();
-        monitor[kRTTPinger] = undefined;
-
-        callback(undefined, hello);
-      }
-    });
-
-    return;
+    );
   }
 
-  // connecting does an implicit `hello`
-  connect(monitor.connectOptions, (err, conn) => {
+  // Since we don't already have a connection for this monitor we send a handshake
+  // generator that will only perform the initial handshake with no authentication.
+  const connectOptions = { ...monitor.connectOptions, monitorHandshake: true };
+  connect(connectOptions, (err, conn) => {
     if (err) {
       monitor[kConnection] = undefined;
 
@@ -364,15 +373,6 @@ function monitorServer(monitor: Monitor) {
 
       done();
     });
-  };
-}
-
-function makeTopologyVersion(tv: TopologyVersion) {
-  return {
-    processId: tv.processId,
-    // tests mock counter as just number, but in a real situation counter should always be a Long
-    // TODO(NODE-2674): Preserve int64 sent from MongoDB
-    counter: Long.isLong(tv.counter) ? tv.counter : Long.fromNumber(tv.counter)
   };
 }
 
